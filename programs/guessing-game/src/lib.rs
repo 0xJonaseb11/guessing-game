@@ -1,54 +1,32 @@
 use anchor_lang::prelude::*;
-use std::cmp::Ordering;
-use std::mem::size_of;
 
 use orao_solana_vrf::{
     cpi::accounts::Request, program::OraoVrf, state::NetworkState, CONFIG_ACCOUNT_SEED,
     RANDOMNESS_ACCOUNT_SEED,
 };
 
-pub mod misc;
-use self::misc::get_account_data;
-
 declare_id!("HMDRWmYvL2A9xVKZG8iA1ozxi4gMKiHQz9mFkURKrG4"); // ! UPDATE ME
 
 #[program]
-pub mod guessing_game {
 
+pub mod guessing_game {
     use super::*;
 
-    pub fn initialize(
-        ctx: Context<GuessingGame>,
-        _user_guess: u64,
-        force_seed: [u8; 32],
-    ) -> Result<()> {
+    pub fn initialize(ctx: Context<GuessingGame>, force_seed: [u8; 32]) -> Result<()> {
         orao_solana_vrf::cpi::request(ctx.accounts.request_ctx(), force_seed)?;
 
-        Ok(())
-    }
 
-    pub fn guess(ctx: Context<GuessingGame>, user_guess: u64, _force_seed: [u8; 32]) -> Result<()> {
-        let account_data = get_account_data(&ctx.accounts.random)?;
-
-        // use the first 8 bytes from the byte slice
-        let byte_array: [u8; 8] = account_data.randomness[0..size_of::<u64>()]
-            .try_into()
-            .unwrap();
-        let secret_number = u64::from_le_bytes(byte_array);
-        let secret_number = secret_number % 11;
-
-        match user_guess.cmp(&secret_number) {
-            Ordering::Less => msg!("Too small!"),
-            Ordering::Greater => msg!("Too big!"),
-            Ordering::Equal => msg!("You win! {:?}", secret_number),
-        }
 
         Ok(())
     }
+
+
+// #[derive(Accounts)]
+// #[instruction(user_guess: u64, force_seed: [u8; 32])] // new
 }
 
 #[derive(Accounts)]
-#[instruction(user_guess: u64, force_seed: [u8; 32])]
+#[instruction(force_seed: [u8; 32])]
 pub struct GuessingGame<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
